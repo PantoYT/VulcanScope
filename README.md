@@ -1,5 +1,7 @@
 # VulcanScope 🌋
 
+[![build](https://github.com/PantoYT/VulcanScope/actions/workflows/build.yml/badge.svg)](https://github.com/PantoYT/VulcanScope/actions/workflows/build.yml)
+
 Pełny eksport dziennika **eduVulcan / VULCAN (Hebe API)** + samodzielny, „cool"
 dashboard do przeglądania wszystkiego offline.
 
@@ -135,6 +137,10 @@ dotnet publish -c Release -r win-x64 --self-contained true `
 # → dist/vulcanscope.exe (~36 MB) — kolega odpala bez żadnego SDK:
 .\dist\vulcanscope.exe exams --json
 ```
+
+Albo **bez budowania**: gotowe binarki (Windows/Linux/macOS) są budowane przez GitHub
+Actions i dołączane do każdego [Release](https://github.com/PantoYT/VulcanScope/releases)
+(tag `v*`) — wystarczy pobrać `vulcanscope-win-x64.exe`.
 
 **Eksport jako komendy do większej aplikacji:** każda komenda danych przyjmuje `--json`
 i wypisuje czysty JSON na stdout (kody wyjścia: `0` ok, `2` błąd API, `3` brak pliku).
