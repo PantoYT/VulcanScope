@@ -1,0 +1,8 @@
+# Runtime (export.py + hebe client)
+requests>=2.31
+cryptography>=42
+
+# Optional:
+#   register.py                 — one-time account pairing (opens a browser)
+#   tools/verify_dashboard.py   — headless dashboard self-test
+playwright>=1.40

@@ -1,0 +1,16 @@
+# Secrets & personal data — NEVER commit these
+credentials.json
+data/
+dashboard.html
+.verify/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# .NET
+csharp/bin/
+csharp/obj/
+csharp/dist/
