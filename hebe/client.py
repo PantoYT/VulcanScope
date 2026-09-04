@@ -100,6 +100,7 @@ class VulcanClient:
     # ------------------------------------------------------------------ #
     def get_lucky_number(self):
         env = self._get("school/lucky", {
+            "pupilId": self.pupil_id,
             "constituentId": self.constituent_id,
             "day": _fmt(datetime.now()),
         })
