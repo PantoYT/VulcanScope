@@ -86,7 +86,7 @@ public sealed class VulcanClient : IDisposable
     public async Task<double?> GetLuckyNumberAsync()
     {
         var env = await GetAsync("school/lucky",
-            Q(("constituentId", ConstituentId), ("day", DateTime.Now.ToString("yyyy-MM-dd"))));
+            Q(("pupilId", PupilId), ("constituentId", ConstituentId), ("day", DateTime.Now.ToString("yyyy-MM-dd"))));
         return env.Num("Number");
     }
 
