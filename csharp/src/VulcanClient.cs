@@ -48,8 +48,8 @@ public sealed class VulcanClient : IDisposable
     {
         var start = Pupil.Str("Journal", "StartAt");
         var end = Pupil.Str("Journal", "EndAt");
-        if (string.IsNullOrEmpty(start)) start = Periods[0].Str("Start", "Date");
-        if (string.IsNullOrEmpty(end)) end = Periods[^1].Str("End", "Date");
+        if (string.IsNullOrEmpty(start)) start = Periods[0].PeriodBounds().Start;
+        if (string.IsNullOrEmpty(end)) end = Periods[^1].PeriodBounds().End;
         return (start, end);
     }
 

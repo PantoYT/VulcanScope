@@ -40,6 +40,14 @@ def _d(s: str) -> datetime:
     return datetime.strptime(s, "%Y-%m-%d")
 
 
+def period_bounds(p: dict) -> tuple[str, str]:
+    """Nowo utworzony bieżący okres ma tylko płaskie StartAt/EndAt — bez
+    zagnieżdżonego Start/End, które API dopisuje później."""
+    start = p.get("StartAt") or p["Start"]["Date"]
+    end = p.get("EndAt") or p["End"]["Date"]
+    return start, end
+
+
 def windows(start: str, end: str, days: int = CHUNK_DAYS):
     """Yield non-overlapping (from, to) date strings covering [start, end]."""
     cur = _d(start)
@@ -369,8 +377,8 @@ def main():
             "level": p.get("Level"),
             "label": period_label(p),
             "current": bool(p.get("Current")),
-            "start": p.get("Start", {}).get("Date"),
-            "end": p.get("End", {}).get("Date"),
+            "start": period_bounds(p)[0],
+            "end": period_bounds(p)[1],
             "grades": grades,
             "summary": summary,
         })
@@ -379,14 +387,14 @@ def main():
     def fetch_schedule():
         out = []
         for p in client.periods:
-            for f, t in windows(p["Start"]["Date"], p["End"]["Date"]):
+            for f, t in windows(*period_bounds(p)):
                 out += client.get_schedule(f, t, p["Id"]) or []
         return dedup(out)
 
     def fetch_changes():
         out = []
         for p in client.periods:
-            for f, t in windows(p["Start"]["Date"], p["End"]["Date"]):
+            for f, t in windows(*period_bounds(p)):
                 out += client.get_schedule_changes(f, t, p["Id"]) or []
         return dedup(out)
 

@@ -75,8 +75,9 @@ class VulcanClient:
 
     def year_range(self) -> tuple[str, str]:
         journal = self.pupil.get("Journal", {})
-        start = journal.get("StartAt") or self.periods[0]["Start"]["Date"]
-        end = journal.get("EndAt") or self.periods[-1]["End"]["Date"]
+        first, last = self.periods[0], self.periods[-1]
+        start = journal.get("StartAt") or first.get("StartAt") or first["Start"]["Date"]
+        end = journal.get("EndAt") or last.get("EndAt") or last["End"]["Date"]
         return start, end
 
     # ------------------------------------------------------------------ #

@@ -1,8 +1,11 @@
 # Secrets & personal data — NEVER commit these
 credentials.json
+credentials.json.bak
+credentials.json.tmp
 data/
 dashboard.html
 .verify/
+dist/
 
 # Python
 __pycache__/
