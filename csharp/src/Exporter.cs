@@ -24,8 +24,9 @@ public static class Exporter
             JsonArray summary;
             try { summary = (await c.GetGradesSummaryAsync(pid)).Arr(); }
             catch { summary = new JsonArray(); }
+            var (pStart, pEnd) = p.PeriodBounds();
             bundles.Add(new PeriodBundle(pid, num, lvl, $"Semestr {num}",
-                p.Bool("Current"), p.Str("Start", "Date"), p.Str("End", "Date"), grades, summary));
+                p.Bool("Current"), pStart, pEnd, grades, summary));
         }
         return bundles;
     }
@@ -34,7 +35,7 @@ public static class Exporter
     {
         var all = new JsonArray();
         foreach (var p in c.Periods)
-            foreach (var (f, t) in Windows(p.Str("Start", "Date"), p.Str("End", "Date")))
+            foreach (var (f, t) in Windows(p.PeriodBounds().Start, p.PeriodBounds().End))
                 foreach (var l in (await c.GetScheduleChangesAsync(f, t, p.Int("Id") ?? 0)).Arr())
                     if (l is not null) all.Add(J.Clone(l));
         Dedup(all);
@@ -80,8 +81,9 @@ public static class Exporter
             int pid = p.Int("Id") ?? 0, num = p.Int("Number") ?? 0, lvl = p.Int("Level") ?? 0;
             var grades = await Safe($"grades[{num}]", () => client.GetGradesAsync(pid));
             var summary = await Safe($"summary[{num}]", () => client.GetGradesSummaryAsync(pid));
+            var (pStart, pEnd) = p.PeriodBounds();
             bundles.Add(new PeriodBundle(pid, num, lvl, $"Semestr {num}",
-                p.Bool("Current"), p.Str("Start", "Date"), p.Str("End", "Date"), grades, summary));
+                p.Bool("Current"), pStart, pEnd, grades, summary));
         }
 
         var (yStart, yEnd) = client.YearRange();
@@ -90,7 +92,7 @@ public static class Exporter
         try
         {
             foreach (var p in client.Periods)
-                foreach (var (f, t) in Windows(p.Str("Start", "Date"), p.Str("End", "Date")))
+                foreach (var (f, t) in Windows(p.PeriodBounds().Start, p.PeriodBounds().End))
                     foreach (var l in (await client.GetScheduleChangesAsync(f, t, p.Int("Id") ?? 0)).Arr())
                         if (l is not null) timetable.Add(J.Clone(l));
             Dedup(timetable); Ok("scheduleChanges", timetable.Count);

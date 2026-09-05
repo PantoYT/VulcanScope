@@ -40,6 +40,19 @@ public static class J
         return d.HasValue ? (int)d.Value : null;
     }
 
+    /// <summary>
+    /// A period's date range. A newly-opened period (start of a school year) only carries
+    /// flat StartAt/EndAt — the nested Start/End objects get backfilled by the API later.
+    /// </summary>
+    public static (string Start, string End) PeriodBounds(this JsonNode? p)
+    {
+        var start = p.Str("StartAt");
+        if (string.IsNullOrEmpty(start)) start = p.Str("Start", "Date");
+        var end = p.Str("EndAt");
+        if (string.IsNullOrEmpty(end)) end = p.Str("End", "Date");
+        return (start, end);
+    }
+
     public static string Str(this JsonNode? n, params string[] path)
     {
         var v = path.Length == 0 ? n : Nav(n, path);
