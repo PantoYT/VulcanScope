@@ -103,6 +103,39 @@ wykresy SVG bez żadnych CDN, animowane słupki/donut/wykres liniowy):
 
 ---
 
+## Plan lekcji w Google Calendar
+
+`ics_feed.py` to mały serwer HTTP oddający plan lekcji jako feed `.ics` do
+subskrypcji (Google Calendar → Inne kalendarze → **Z adresu URL**).
+
+```powershell
+py -3.12 ics_feed.py            # nasłuchuje na 127.0.0.1:8765
+# albo dwuklik ics_feed_launch.vbs (odpala w tle, loguje do ics_feed.log)
+```
+
+Świadomie prosty wybór architektury: generuje ICS **na żywo** przy każdym
+żądaniu (bez cache, bez zadania cyklicznego) i **nie wymaga OAuth ani konta
+Google Cloud** — to zwykła subskrypcja adresu URL, nie integracja przez API.
+
+- **Koszt tej prostoty**: Google sam odświeża subskrybowany kalendarz co
+  ~8–24h, bez możliwości przyspieszenia — zastępstwa/odwołania mogą być
+  nieświeże nawet dobę. Świadomie zaakceptowane: to kalendarz do planowania
+  dnia, nie system alertów. Realny push (OAuth + zadanie cykliczne) też był
+  rozważany, ale kosztowałby kolejny projekt w Google Cloud.
+- Token w URL-u (`ics_token.txt`, gitignore) to jedyne zabezpieczenie —
+  traktować jak hasło, kto zna URL, widzi plan lekcji.
+- Serwer musi działać, żeby Google mógł go odpytać — trzymać uruchomiony
+  (np. przez `ics_feed_launch.vbs` przy starcie), inaczej odświeżenie po
+  prostu nie wyjdzie tego dnia i spróbuje ponownie następnym razem.
+- **Do zrobienia przez Ciebie (jednorazowo)**: wystawić `127.0.0.1:8765` pod
+  publicznym adresem. `kompu-tunnel` na tym PC działa w trybie zdalnie
+  zarządzanym (token, bez lokalnego `config.yml`), więc nową regułę
+  (Public Hostname → `http://localhost:8765`) dodaje się w panelu Cloudflare
+  Zero Trust, nie w pliku. Potem pełny adres z tokenem wklej w Google
+  Calendar.
+
+---
+
 ## C# — CLI + tryb terminalowy
 
 Pełny port w **.NET 10** (`csharp/`) — ten sam mechanizm podpisów RSA, te same dane,
@@ -159,6 +192,8 @@ VulcanScope/
 ├── hebe/                 # klient Python (signing.py, client.py)
 ├── export.py             # pobiera wszystko → data/*.json + dashboard.html
 ├── register.py           # jednorazowe parowanie konta (przeglądarka)
+├── ics_feed.py           # serwer .ics — plan lekcji w Google Calendar
+├── ics_feed_launch.vbs   # odpala ics_feed.py w tle
 ├── web/template.html     # szablon dashboardu (Aurora/Midnight, placeholder na dane)
 ├── tools/verify_dashboard.py   # headless test (Playwright)
 ├── csharp/               # port C# (.NET 10)

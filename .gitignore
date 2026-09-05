@@ -2,6 +2,8 @@
 credentials.json
 credentials.json.bak
 credentials.json.tmp
+ics_token.txt
+ics_feed.log
 data/
 dashboard.html
 .verify/
