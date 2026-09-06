@@ -19,3 +19,10 @@ venv/
 csharp/bin/
 csharp/obj/
 csharp/dist/
+
+# Local environment secrets (keep safe templates versioned)
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
