@@ -2,207 +2,209 @@
 
 [![build](https://github.com/PantoYT/VulcanScope/actions/workflows/build.yml/badge.svg)](https://github.com/PantoYT/VulcanScope/actions/workflows/build.yml)
 
-Pełny eksport dziennika **eduVulcan / VULCAN (Hebe API)** + samodzielny, „cool"
-dashboard do przeglądania wszystkiego offline.
+A full export of the **eduVulcan / VULCAN (Hebe API)** school gradebook (used by Polish
+schools) + a standalone, "cool" dashboard for browsing everything offline.
 
-Pobiera oceny, frekwencję, plan lekcji, sprawdziany, zadania domowe, uwagi i
-osiągnięcia — i generuje jeden plik `dashboard.html`, który otwierasz w
-przeglądarce (dane są w nim zaszyte, działa bez internetu i bez serwera).
+It downloads grades, attendance, the timetable, tests, homework, notes and
+achievements — and generates a single `dashboard.html` you open in a browser (the data
+is embedded in it; it works without internet and without a server).
 
-> Projekt korzysta z tego samego mechanizmu logowania co bot **Vred** —
-> podpisywanych kluczem RSA żądań do mobilnego API „DzienniczekPlus 3.0".
-> Bazuje na reverse-engineeringu [hebece](https://github.com/hypedevss/hebece).
-
----
-
-## Jak działa logowanie (w skrócie)
-
-To nie jest logowanie hasłem przy każdym żądaniu — to **parowanie urządzenia**:
-
-1. **`register.py`** (jednorazowo) — otwiera przeglądarkę, logujesz się ręcznie na
-   eduvulcan.pl. Skrypt pobiera tokeny JWT z `/api/ap`, generuje parę kluczy
-   **RSA 2048** + samopodpisany certyfikat X.509 i rejestruje klucz publiczny na
-   koncie (`/api/mobile/register/jwt`). Zapisuje `credentials.json`.
-2. **`hebe/`** — od tej chwili **klucz prywatny RSA = login**. Każde żądanie jest
-   podpisywane (`canonicalUrl + digest + data` → RSA-PKCS#1v1.5-SHA256), a
-   nagłówki udają aplikację z Androida. Żadnego hasła, sesji ani wygasania.
-
-`credentials.json` = pełny odczyt dziennika bez hasła → **traktuj jak hasło**
-(jest w `.gitignore`).
+> The project uses the same login mechanism as the **Vred** bot — RSA-key-signed
+> requests to the "DzienniczekPlus 3.0" mobile API. It builds on the reverse
+> engineering in [hebece](https://github.com/hypedevss/hebece).
 
 ---
 
-## Co jest eksportowane
+## How login works (in short)
 
-| Zasób | Endpoint Hebe | Przykład z eksportu |
+It isn't a password login on every request — it's **device pairing**:
+
+1. **`register.py`** (once) — opens a browser and you log in manually at eduvulcan.pl.
+   The script takes the JWT tokens from `/api/ap`, generates an **RSA 2048** key pair +
+   a self-signed X.509 certificate and registers the public key on the account
+   (`/api/mobile/register/jwt`). It saves `credentials.json`.
+2. **`hebe/`** — from then on **the RSA private key = the login**. Every request is
+   signed (`canonicalUrl + digest + data` → RSA-PKCS#1v1.5-SHA256), and the headers
+   mimic the Android app. No password, no session, no expiry.
+
+`credentials.json` = full read access to the gradebook without a password → **treat it
+like a password** (it's in `.gitignore`).
+
+---
+
+## What gets exported
+
+| Resource | Hebe endpoint | Example from an export |
 |---|---|---|
-| Oceny cząstkowe (oba semestry) | `grade/byPupil` | 225 ocen |
-| Oceny przewidywane / końcowe | `grade/summary/byPupil` | 49 wpisów |
-| Frekwencja + tematy lekcji | `lesson/byPupil` | 1119 lekcji, ~98% |
-| Plan lekcji + zmiany/zastępstwa | `schedule/withchanges/byPupil` | 1269 lekcji |
-| Sprawdziany i kartkówki | `exam/byPupil` | 79 |
-| Zadania domowe | `homework/byPupil` | 3 |
-| Uwagi i osiągnięcia | `note/byPupil` | 2 |
-| Szczęśliwy numerek | `school/lucky` | — |
-| Wiadomości + książka adresowa | `messages/*/byBox`, `addressbook` | 🔒 wymaga eduVulcan **Premium** |
+| Partial grades (both semesters) | `grade/byPupil` | 225 grades |
+| Predicted / final grades | `grade/summary/byPupil` | 49 entries |
+| Attendance + lesson topics | `lesson/byPupil` | 1119 lessons, ~98% |
+| Timetable + changes/substitutions | `schedule/withchanges/byPupil` | 1269 lessons |
+| Tests and quizzes | `exam/byPupil` | 79 |
+| Homework | `homework/byPupil` | 3 |
+| Notes and achievements | `note/byPupil` | 2 |
+| Lucky number | `school/lucky` | — |
+| Messages + address book | `messages/*/byBox`, `addressbook` | 🔒 requires eduVulcan **Premium** |
 
-Wszystko ląduje w `data/*.json` (surowe dane) + kompaktowy `data/dashboard_data.json`,
-który jest zaszywany w `dashboard.html`.
+Everything lands in `data/*.json` (raw data) + a compact `data/dashboard_data.json`,
+which is embedded into `dashboard.html`.
 
-> **Uwaga o wiadomościach:** API zwraca `EDUVULCAN_PREMIUM` dla skrzynki i książki
-> adresowej, bo konto szkoły nie ma aktywnej subskrypcji. Eksport mimo to kończy
-> się sukcesem — te dwie sekcje są po prostu pomijane (dashboard pokazuje to
-> czytelnie).
+> **About messages:** the API returns `EDUVULCAN_PREMIUM` for the mailbox and the address
+> book, because the school's account has no active subscription. The export still
+> succeeds — those two sections are simply skipped (the dashboard shows that clearly).
 
 ---
 
-## Użycie
+## Usage
 
 ```powershell
-# 1. (jednorazowo) zależności
+# 1. (once) dependencies
 py -3.12 -m pip install -r requirements.txt
-py -3.12 -m playwright install chromium   # tylko dla register.py / weryfikacji
+py -3.12 -m playwright install chromium   # only for register.py / verification
 
-# 2. (jednorazowo) zaloguj się i sparuj urządzenie  →  tworzy credentials.json
+# 2. (once) log in and pair the device  →  creates credentials.json
 py -3.12 register.py
-#    ...lub skopiuj istniejący credentials.json z bota Vred
+#    ...or copy an existing credentials.json from the Vred bot
 
-# 3. pobierz dane i wygeneruj dashboard
+# 3. download the data and generate the dashboard
 py -3.12 export.py
 
-# 4. otwórz dashboard.html w przeglądarce  (albo po prostu run.bat)
+# 4. open dashboard.html in a browser  (or just run.bat)
 ```
 
-`run.bat` robi krok 3 + 4 jednym kliknięciem.
+`run.bat` does steps 3 + 4 in one click.
 
-### Przydatne tryby
+### Useful modes
 
 ```powershell
-py -3.12 export.py --render-only      # przebuduj dashboard z ostatnich danych (bez API)
-py -3.12 tools/verify_dashboard.py    # headless test: sprawdza brak błędów JS + zrzuty ekranu
+py -3.12 export.py --render-only      # rebuild the dashboard from the last data (no API)
+py -3.12 tools/verify_dashboard.py    # headless test: checks for JS errors + screenshots
 ```
 
 ---
 
 ## Dashboard
 
-Jeden samowystarczalny plik HTML w stylu **glassmorphism** (aurora gradient,
-wykresy SVG bez żadnych CDN, animowane słupki/donut/wykres liniowy):
+One self-contained HTML file in a **glassmorphism** style (aurora gradient, SVG charts
+without any CDN, animated bars/donut/line chart):
 
-- **Przegląd** — średnia ważona, frekwencja, kafelki, ostatnie oceny, wykres średnich, nadchodzące sprawdziany/zadania
-- **Oceny** — przełącznik semestrów, średnia per przedmiot, kolorowane „pigułki" ocen (hover = waga, kategoria, nauczyciel, komentarz)
-- **Frekwencja** — donut, statystyki, rozbicie per przedmiot, dziennik tematów z wyszukiwarką
-- **Plan lekcji** — siatka tygodniowa z nawigacją, zastępstwa (żółte) i odwołane (czerwone)
-- **Sprawdziany / Zadania** — grupowane po dacie, odznaki „za N dni"
-- **Uwagi** — pozytywne/negatywne karty
-- **Motyw** — przełącznik **Aurora (jasny)** / **Midnight (ciemny)**, zapamiętywany w `localStorage`
-- **Animacje** — count-up liczników, „rysujące się" słupki, donut i wykres liniowy (średnia w czasie)
+- **Overview** — weighted average, attendance, tiles, recent grades, averages chart, upcoming tests/homework
+- **Grades** — semester switch, average per subject, colored grade "pills" (hover = weight, category, teacher, comment)
+- **Attendance** — donut, statistics, breakdown per subject, a searchable log of lesson topics
+- **Timetable** — weekly grid with navigation, substitutions (yellow) and cancellations (red)
+- **Tests / Homework** — grouped by date, "in N days" badges
+- **Notes** — positive/negative cards
+- **Theme** — **Aurora (light)** / **Midnight (dark)** switch, remembered in `localStorage`
+- **Animations** — counter count-up, "drawing" bars, donut and line chart (average over time)
 
-> Średnia ważona liczy `+`/`-` jako **+0,5 / −0,25** (najczęstsza konwencja PL —
-> stała w `export.py` i `csharp/`, łatwo zmienić). Oceny punktowe i `nb` są pomijane.
+The dashboard's interface is in Polish.
+
+> The weighted average counts `+`/`-` as **+0.5 / −0.25** (the most common Polish
+> convention — a constant in `export.py` and `csharp/`, easy to change). Point grades and
+> `nb` are skipped.
 
 ---
 
-## Plan lekcji w Google Calendar
+## Timetable in Google Calendar
 
-`ics_feed.py` to mały serwer HTTP oddający plan lekcji jako feed `.ics` do
-subskrypcji (Google Calendar → Inne kalendarze → **Z adresu URL**).
+`ics_feed.py` is a small HTTP server that serves the timetable as an `.ics` feed for
+subscription (Google Calendar → Other calendars → **From URL**).
 
 ```powershell
-py -3.12 ics_feed.py            # nasłuchuje na 127.0.0.1:8765
-# albo dwuklik ics_feed_launch.vbs (odpala w tle, loguje do ics_feed.log)
+py -3.12 ics_feed.py            # listens on 127.0.0.1:8765
+# or double-click ics_feed_launch.vbs (runs in the background, logs to ics_feed.log)
 ```
 
-Świadomie prosty wybór architektury: generuje ICS **na żywo** przy każdym
-żądaniu (bez cache, bez zadania cyklicznego) i **nie wymaga OAuth ani konta
-Google Cloud** — to zwykła subskrypcja adresu URL, nie integracja przez API.
+A deliberately simple architecture: it generates the ICS **live** on every request (no
+cache, no scheduled job) and **needs no OAuth and no Google Cloud account** — it's a plain
+URL subscription, not an API integration.
 
-- **Koszt tej prostoty**: Google sam odświeża subskrybowany kalendarz co
-  ~8–24h, bez możliwości przyspieszenia — zastępstwa/odwołania mogą być
-  nieświeże nawet dobę. Świadomie zaakceptowane: to kalendarz do planowania
-  dnia, nie system alertów. Realny push (OAuth + zadanie cykliczne) też był
-  rozważany, ale kosztowałby kolejny projekt w Google Cloud.
-- Token w URL-u (`ics_token.txt`, gitignore) to jedyne zabezpieczenie —
-  traktować jak hasło, kto zna URL, widzi plan lekcji.
-- Serwer musi działać, żeby Google mógł go odpytać — trzymać uruchomiony
-  (np. przez `ics_feed_launch.vbs` przy starcie), inaczej odświeżenie po
-  prostu nie wyjdzie tego dnia i spróbuje ponownie następnym razem.
-- **Do zrobienia przez Ciebie (jednorazowo)**: wystawić `127.0.0.1:8765` pod
-  publicznym adresem. `kompu-tunnel` na tym PC działa w trybie zdalnie
-  zarządzanym (token, bez lokalnego `config.yml`), więc nową regułę
-  (Public Hostname → `http://localhost:8765`) dodaje się w panelu Cloudflare
-  Zero Trust, nie w pliku. Potem pełny adres z tokenem wklej w Google
-  Calendar.
+- **The cost of that simplicity**: Google refreshes a subscribed calendar by itself every
+  ~8–24 h, with no way to speed it up — substitutions/cancellations can be up to a day
+  stale. Deliberately accepted: it's a calendar for planning the day, not an alert
+  system. A real push (OAuth + a scheduled job) was considered too, but it would cost
+  another Google Cloud project.
+- The token in the URL (`ics_token.txt`, gitignored) is the only protection — treat it
+  like a password; anyone who knows the URL sees the timetable.
+- The server has to be running for Google to poll it — keep it up (e.g. via
+  `ics_feed_launch.vbs` at startup), otherwise the refresh simply won't happen that day
+  and will be retried next time.
+- **To do on your side (once)**: expose `127.0.0.1:8765` at a public address. The
+  `kompu-tunnel` on this PC runs in remotely managed mode (token, no local
+  `config.yml`), so the new rule (Public Hostname → `http://localhost:8765`) is added in
+  the Cloudflare Zero Trust panel, not in a file. Then paste the full address with the
+  token into Google Calendar.
 
 ---
 
-## C# — CLI + tryb terminalowy
+## C# — CLI + terminal mode
 
-Pełny port w **.NET 10** (`csharp/`) — ten sam mechanizm podpisów RSA, te same dane,
-ta sama `dashboard.html`. Dodatkowo interaktywny dashboard w terminalu (Spectre.Console)
-oraz komendy z wyjściem `--json` do osadzenia w większej aplikacji.
+A full port in **.NET 10** (`csharp/`) — the same RSA signing mechanism, the same data,
+the same `dashboard.html`. Plus an interactive terminal dashboard (Spectre.Console) and
+commands with `--json` output for embedding in a larger application.
 
 ```powershell
 cd csharp
 dotnet build
-dotnet run -- register            # sparuj konto (bez Pythona) — keygen + register/jwt
-dotnet run -- tui                 # interaktywny dashboard w terminalu
-dotnet run -- export              # data/*.json + dashboard.html (jak w Pythonie)
-dotnet run -- grades -p 2         # oceny semestru 2 (tabela)
-dotnet run -- attendance          # frekwencja + statystyki
-dotnet run -- plan                # plan lekcji (najbliższe dni)
-dotnet run -- exams --all         # sprawdziany
+dotnet run -- register            # pair the account (without Python) — keygen + register/jwt
+dotnet run -- tui                 # interactive terminal dashboard
+dotnet run -- export              # data/*.json + dashboard.html (as in Python)
+dotnet run -- grades -p 2         # semester 2 grades (table)
+dotnet run -- attendance          # attendance + statistics
+dotnet run -- plan                # timetable (next few days)
+dotnet run -- exams --all         # tests
 dotnet run -- lucky --json        # {"lucky": null}
 ```
 
-**Parowanie konta w C# (`register`)** — bez Pythona/Playwright: generuje parę RSA + cert,
-loguje Cię w przeglądarce, a po wklejeniu strony `https://eduvulcan.pl/api/ap` (lub
-`--ap-file`) robi `register/jwt` + `register/hebe` i zapisuje `credentials.json`.
-`register --selftest` weryfikuje kryptografię (roundtrip podpisu) i ścieżkę `register/hebe`.
+**Account pairing in C# (`register`)** — without Python/Playwright: it generates an RSA
+pair + certificate, logs you in in the browser, and after you paste the
+`https://eduvulcan.pl/api/ap` page (or `--ap-file`) it performs `register/jwt` +
+`register/hebe` and saves `credentials.json`. `register --selftest` verifies the
+cryptography (signature roundtrip) and the `register/hebe` path.
 
-### Samodzielny `.exe` (bez instalowania .NET)
+### Standalone `.exe` (no .NET install needed)
 
 ```powershell
 cd csharp
 dotnet publish -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
   -p:EnableCompressionInSingleFile=true -o dist
-# → dist/vulcanscope.exe (~36 MB) — kolega odpala bez żadnego SDK:
+# → dist/vulcanscope.exe (~36 MB) — a friend runs it without any SDK:
 .\dist\vulcanscope.exe exams --json
 ```
 
-Albo **bez budowania**: gotowe binarki (Windows/Linux/macOS) są budowane przez GitHub
-Actions i dołączane do każdego [Release](https://github.com/PantoYT/VulcanScope/releases)
-(tag `v*`) — wystarczy pobrać `vulcanscope-win-x64.exe`.
+Or **without building**: ready binaries (Windows/Linux/macOS) are built by GitHub Actions
+and attached to every [Release](https://github.com/PantoYT/VulcanScope/releases) (tag
+`v*`) — just download `vulcanscope-win-x64.exe`.
 
-**Eksport jako komendy do większej aplikacji:** każda komenda danych przyjmuje `--json`
-i wypisuje czysty JSON na stdout (kody wyjścia: `0` ok, `2` błąd API, `3` brak pliku).
-Większa aplikacja może wołać np. `vulcanscope grades --json` i parsować wynik — albo użyć
-klas `VulcanClient` / `ViewModel` / `Exporter` bezpośrednio jako biblioteki.
+**Export as commands for a larger application:** every data command accepts `--json` and
+prints clean JSON to stdout (exit codes: `0` ok, `2` API error, `3` missing file). A larger
+application can call e.g. `vulcanscope grades --json` and parse the result — or use the
+`VulcanClient` / `ViewModel` / `Exporter` classes directly as a library.
 
-> `credentials.json` jest współdzielony z częścią pythonową (auto-wykrywany w górę drzewa).
-> Rejestracja konta dalej przez `register.py` (Playwright).
+> `credentials.json` is shared with the Python part (auto-detected up the directory
+> tree). Account registration can still go through `register.py` (Playwright).
 
 ---
 
-## Struktura
+## Structure
 
 ```
 VulcanScope/
-├── hebe/                 # klient Python (signing.py, client.py)
-├── export.py             # pobiera wszystko → data/*.json + dashboard.html
-├── register.py           # jednorazowe parowanie konta (przeglądarka)
-├── ics_feed.py           # serwer .ics — plan lekcji w Google Calendar
-├── ics_feed_launch.vbs   # odpala ics_feed.py w tle
-├── web/template.html     # szablon dashboardu (Aurora/Midnight, placeholder na dane)
+├── hebe/                 # Python client (signing.py, client.py)
+├── export.py             # downloads everything → data/*.json + dashboard.html
+├── register.py           # one-time account pairing (browser)
+├── ics_feed.py           # .ics server — timetable in Google Calendar
+├── ics_feed_launch.vbs   # runs ics_feed.py in the background
+├── web/template.html     # dashboard template (Aurora/Midnight, data placeholder)
 ├── tools/verify_dashboard.py   # headless test (Playwright)
-├── csharp/               # port C# (.NET 10)
+├── csharp/               # C# port (.NET 10)
 │   ├── Program.cs
 │   └── src/              # Signing, VulcanClient, ViewModel, Exporter, Tui, Cli …
 ├── run.bat
-├── credentials.json      # 🔒 sekret (gitignore)
-├── data/                 # 🔒 wyeksportowane dane (gitignore)
-└── dashboard.html        # 🔒 wygenerowany (gitignore)
+├── credentials.json      # 🔒 secret (gitignored)
+├── data/                 # 🔒 exported data (gitignored)
+└── dashboard.html        # 🔒 generated (gitignored)
 ```
 
-Tylko do użytku z **własnym** kontem. Dane zostają lokalnie na Twoim komputerze.
+For use with **your own** account only. The data stays locally on your computer.
