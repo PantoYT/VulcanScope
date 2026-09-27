@@ -165,6 +165,11 @@ def weighted_avg(grades) -> float | None:
     return round(num / den, 2) if den else None
 
 
+def _grade_date(g) -> str:
+    """API moved from nested DateCreated.Date to flat CreatedAt (ISO timestamp) — handle both."""
+    return (g.get("CreatedAt") or "")[:10] or (g.get("DateCreated") or {}).get("Date", "")
+
+
 def _compact_grade(g):
     col = g.get("Column") or {}
     return {
@@ -173,7 +178,7 @@ def _compact_grade(g):
         "weight": col.get("Weight") or 0,
         "name": col.get("Name", ""),
         "category": (col.get("Category") or {}).get("Name", ""),
-        "date": (g.get("DateCreated") or {}).get("Date", ""),
+        "date": _grade_date(g),
         "dateDisp": (g.get("DateCreated") or {}).get("DateDisplay", ""),
         "teacher": (g.get("Creator") or {}).get("DisplayName", ""),
         "comment": g.get("Comment", "") or "",
@@ -213,7 +218,7 @@ def build_view_model(student, periods, lucky, grades_by_period, timetable_src,
         subj_list = []
         for sid, d in subjects.items():
             s = summ.get(sid) or {}
-            ordered = sorted(d["grades"], key=lambda x: (x.get("DateCreated") or {}).get("Date", ""))
+            ordered = sorted(d["grades"], key=_grade_date)
             subj_list.append({
                 "name": d["name"],
                 "position": d["position"],

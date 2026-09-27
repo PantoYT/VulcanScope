@@ -47,6 +47,13 @@ public static class ViewModel
         return den > 0 ? Math.Round(num / den, 2) : null;
     }
 
+    /// API moved from nested DateCreated.Date to flat CreatedAt (ISO timestamp) — handle both.
+    private static string GradeDate(JsonNode g)
+    {
+        var at = g.Str("CreatedAt");
+        return at.Length >= 10 ? at[..10] : g.Str("DateCreated", "Date");
+    }
+
     private static JsonObject CompactGrade(JsonNode g) => new()
     {
         ["content"] = g.Str("Content"),
@@ -54,7 +61,7 @@ public static class ViewModel
         ["weight"] = g.Num("Column", "Weight") ?? 0,
         ["name"] = g.Str("Column", "Name"),
         ["category"] = g.Str("Column", "Category", "Name"),
-        ["date"] = g.Str("DateCreated", "Date"),
+        ["date"] = GradeDate(g),
         ["dateDisp"] = g.Str("DateCreated", "DateDisplay"),
         ["teacher"] = g.Str("Creator", "DisplayName"),
         ["comment"] = g.Str("Comment"),
@@ -153,7 +160,7 @@ public static class ViewModel
             foreach (var (sid, grp) in groups)
             {
                 summ.TryGetValue(sid, out var s);
-                var sorted = grp.grades.OrderBy(x => x.Str("DateCreated", "Date"), StringComparer.Ordinal).ToList();
+                var sorted = grp.grades.OrderBy(x => GradeDate(x), StringComparer.Ordinal).ToList();
                 var gradeArr = new JsonArray();
                 foreach (var x in sorted) gradeArr.Add(CompactGrade(x));
 
